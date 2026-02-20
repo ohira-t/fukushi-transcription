@@ -24,6 +24,7 @@ import {
   Square,
   ClipboardCopy,
   Building2,
+  Type,
 } from "lucide-react";
 
 interface DiaryRecord {
@@ -110,9 +111,10 @@ export default function Home() {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [audioInputMode, setAudioInputMode] = useState<"upload" | "record">(
-    "record"
-  );
+  const [audioInputMode, setAudioInputMode] = useState<
+    "upload" | "record" | "text"
+  >("record");
+  const [inputText, setInputText] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -240,7 +242,7 @@ export default function Home() {
   };
 
   const handleAnalyze = () => {
-    if (!file) return;
+    if (!file && !inputText.trim()) return;
     setIsAnalyzing(true);
     setIsConfirmed(false);
 
@@ -263,6 +265,7 @@ export default function Home() {
 
   const handleReset = () => {
     setFile(null);
+    setInputText("");
     setAnalysisComplete(false);
     setIsConfirmed(false);
     setRecordingTime(0);
@@ -324,7 +327,7 @@ export default function Home() {
                   福祉事業文字起こしシステム
                 </h1>
                 <p className="text-xs sm:text-sm text-[#6b8a7f]">
-                  音声からAIが業務日誌テキストを自動作成
+                  音声・テキストからAIが業務日誌テキストを自動作成
                 </p>
               </div>
             </div>
@@ -562,10 +565,14 @@ export default function Home() {
               <div className="bg-white rounded-2xl p-6 shadow-lg shadow-[#2d8a6f]/5 border border-[#d1e7dd]">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-[#e8f5f0] rounded-lg flex items-center justify-center">
-                    <Mic className="w-4 h-4 text-[#2d8a6f]" />
+                    {audioInputMode === "text" ? (
+                      <Type className="w-4 h-4 text-[#2d8a6f]" />
+                    ) : (
+                      <Mic className="w-4 h-4 text-[#2d8a6f]" />
+                    )}
                   </div>
                   <h2 className="text-lg font-semibold text-[#1a3a2f]">
-                    音声入力
+                    {audioInputMode === "text" ? "テキスト入力" : "音声入力"}
                   </h2>
                 </div>
 
@@ -580,7 +587,7 @@ export default function Home() {
                     }`}
                   >
                     <Mic className="w-4 h-4" />
-                    録音する
+                    録音
                   </button>
                   <button
                     onClick={() => setAudioInputMode("upload")}
@@ -591,11 +598,45 @@ export default function Home() {
                     }`}
                   >
                     <Upload className="w-4 h-4" />
-                    ファイル選択
+                    ファイル
+                  </button>
+                  <button
+                    onClick={() => setAudioInputMode("text")}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      audioInputMode === "text"
+                        ? "bg-white text-[#2d8a6f] shadow-sm"
+                        : "text-[#6b8a7f] hover:text-[#2d8a6f]"
+                    }`}
+                  >
+                    <Type className="w-4 h-4" />
+                    テキスト
                   </button>
                 </div>
 
-                {audioInputMode === "record" ? (
+                {audioInputMode === "text" ? (
+                  /* Text Input UI */
+                  <div className="space-y-4">
+                    <textarea
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      rows={8}
+                      className="w-full px-4 py-3 border border-[#d1e7dd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2d8a6f]/30 focus:border-[#2d8a6f] transition-all bg-[#f9fdfb] resize-none text-sm leading-relaxed"
+                      placeholder={"面談内容や業務報告のメモをここに貼り付け、または入力してください。\n\n例:\n山田さん、今日は午前中データ入力をやった。集中してミスなくできていた。午後は封入作業とシール貼り。面談で最近の調子を聞いたら、朝の起床が安定してきたとのこと。昼休みは食堂で他の利用者と楽しそうに話していた。"}
+                    />
+                    {inputText.trim() && (
+                      <div className="flex items-center justify-between text-sm text-[#6b8a7f]">
+                        <span>{inputText.length} 文字</span>
+                        <button
+                          onClick={() => setInputText("")}
+                          className="text-[#6b8a7f] hover:text-red-500 transition-colors flex items-center gap-1"
+                        >
+                          <X className="w-4 h-4" />
+                          クリア
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : audioInputMode === "record" ? (
                   /* Recording UI */
                   <div className="text-center">
                     {!file ? (
@@ -759,9 +800,9 @@ export default function Home() {
                 {/* Analyze Button */}
                 <button
                   onClick={handleAnalyze}
-                  disabled={!file || isAnalyzing}
+                  disabled={(!file && !inputText.trim()) || isAnalyzing}
                   className={`w-full mt-6 py-4 rounded-xl font-medium text-white flex items-center justify-center gap-2 transition-all duration-300 ${
-                    file && !isAnalyzing
+                    (file || inputText.trim()) && !isAnalyzing
                       ? "bg-gradient-to-r from-[#2d8a6f] to-[#0d9488] hover:shadow-lg hover:shadow-[#2d8a6f]/30 hover:-translate-y-0.5"
                       : "bg-gray-300 cursor-not-allowed"
                   }`}
@@ -769,7 +810,9 @@ export default function Home() {
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      文字起こし中...
+                      {audioInputMode === "text"
+                        ? "テキスト解析中..."
+                        : "文字起こし中..."}
                     </>
                   ) : (
                     <>
@@ -825,7 +868,9 @@ export default function Home() {
                       AIが業務日誌テキストを作成中...
                     </p>
                     <p className="text-sm text-[#6b8a7f] mt-2">
-                      音声を解析して情報を抽出しています
+                      {audioInputMode === "text"
+                        ? "テキストを解析して情報を抽出しています"
+                        : "音声を解析して情報を抽出しています"}
                     </p>
                     <div className="flex items-center gap-1 mt-6">
                       {[...Array(5)].map((_, i) => (
@@ -971,7 +1016,7 @@ export default function Home() {
                       <FileText className="w-10 h-10 text-[#2d8a6f]/40" />
                     </div>
                     <p className="text-[#6b8a7f]">
-                      音声を録音またはアップロードして
+                      音声の録音・アップロード、またはテキストを入力して
                       <br />
                       「AIで業務日誌テキストを作成」をクリック
                     </p>
