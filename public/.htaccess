@@ -1,0 +1,38 @@
+# _next ディレクトリへのアクセスを許可
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 存在するファイルやディレクトリへのリクエストはそのまま処理
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA: 存在しないパスは index.html にフォールバック
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# MIME タイプの設定
+<IfModule mod_mime.c>
+  AddType text/css .css
+  AddType application/javascript .js
+  AddType application/json .json
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+  AddType image/svg+xml .svg
+  AddType image/x-icon .ico
+</IfModule>
+
+# キャッシュ設定
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# gzip 圧縮
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json font/woff2 image/svg+xml
+</IfModule>
